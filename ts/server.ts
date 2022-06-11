@@ -1,6 +1,8 @@
 import express from "express";
 import bodyParser from "body-parser";
 
+
+// user client
 type registerReq = { type: "register", userID: string, pwd1: string, pwd2: string }
 type registerRes = { type: "OK" | "ERR" }
 
@@ -32,6 +34,32 @@ type closeRes = { type: "OK" | "ERR" }
 type checkReq = { type: "check", userID: string }
 type checkRes = { status: "wait" | "charging" | "idle" }
 
+// admin client
+type startChargeReq = { type: "startCharge", chargerID: string }
+type startChargeRes = { type: "OK" | "ERR", chargerID: string, chargerStatus: "working" | "idle" | "failed" }
+
+type endChargeReq = { type: "endCharge", chargerID: string }
+type endChargeRes = { type: "OK" | "ERR", chargerID: string, chargerStatus: "working" | "idle" | "failed" }
+
+type showChargeReq = { type: "showCharge" }
+type showChargeRes = {
+    chargerID: string, chargerStatus: "working" | "idle" | "failed", chargerCount: number,
+    chargerSum: number, chargerTimeSum: number, capacitySum: number
+}
+
+type waitCarReq = { type: "WaitCarMessage", chargerID: string }
+type waitCarRes = {
+    chargerID: string, userID: string,
+    carCapacity: number, capacity: number, queueTime: number
+}
+
+type showTableReq = { type: "showTable" }
+type showTableRes = {
+    date: string, chargerID: string,
+    chargerCount: number, chargerTimeSum: number, capacitySum: number,
+    chargerBillSum: number, serviceBillSum: number, totalBillSum: number
+}
+
 
 const port = 3000;
 const app = express()
@@ -39,9 +67,12 @@ app.use(bodyParser.urlencoded({extended: true}))
 app.use(bodyParser.json())
 app.post('/', (req, res) => {
     let p = req.body
+    console.log("Get:")
     console.log(p)
     let sendBack: { [key: string]: any } = {}
+    let a: { [key: string]: any } = {}
     switch (p.type) {
+        //user client
         case"register":
             sendBack.type = "ERR"
             break
@@ -61,12 +92,12 @@ app.post('/', (req, res) => {
             sendBack.totalBill = "20"
             break
         case "charge":
-            sendBack.type="OK"
-            sendBack.waitNum="T1"
+            sendBack.type = "OK"
+            sendBack.waitNum = "T1"
             break
         case "changeMode":
-            sendBack.type="ERR"
-            sendBack.waitNum="null"
+            sendBack.type = "ERR"
+            sendBack.waitNum = "null"
             break
         case "waitNum":
             sendBack.waitNum = "T1"
@@ -80,7 +111,53 @@ app.post('/', (req, res) => {
         case "check":
             sendBack.status = "idle"
             break
+        // admin client
+        case"startCharge":
+            sendBack.type = "OK"
+            sendBack.chargerID = p.chargerID
+            sendBack.chargerStatus = "working"
+            break
+        case"endCharge":
+            sendBack.type = "OK"
+            sendBack.chargerID = p.chargerID
+            sendBack.chargerStatus = "closed"
+            break
+        case "showCharge":
+            for (let i = 0; i < 3; i++) {
+                a.chargerID = `${i}`
+                a.chargerStatus = "working"
+                a.chargerCount = 9
+                a.chargerSum = 1113
+                a.chargerTimeSum = 1113
+                a.capacitySum = 1113
+                sendBack[i] = a
+                a = {}
+            }
+            break
+        case "WaitCarMessage":
+            sendBack.chargerID = p.chargerID
+            sendBack.userID = "004"
+            sendBack.carCapacity = 1113
+            sendBack.capacity = 1113
+            sendBack.queueTime = 16
+            break
+        case "showTable":
+            for (let i = 0; i < 3; i++) {
+                a.date = "6月6日第14周"
+                a.chargerID = `${i}`
+                a.chargerCount = 1113
+                a.chargerTimeSum = 1114
+                a.capacitySum = 1115
+                a.chargerBillSum = 111.6
+                a.serviceBillSum = 111.7
+                a.totalBillSum = 111.8
+                sendBack[i] = a
+                a = {}
+            }
+            break
     }
+    console.log("Send:")
+    console.log(sendBack)
     res.send(sendBack)
 })
 
