@@ -40,7 +40,7 @@ type closeRes = { type: "OK" | "ERR" }
 
 // 定时发送，判断自身状态
 type checkReq = { type: "check", userID: string }
-type checkRes = { status: "wait" | "charging" | "idle" }
+type checkRes = { status: "wait" | "charging" | "idle"|"chargerWait" }
 
 enum Status {
     init,
@@ -190,7 +190,7 @@ rl.on("line", input => {
                             console.log("注册成功")
                             break
                         default:
-                            console.log("出错!")
+                            console.log("出错!（两次密码不一致或是用户名已经占用）")
                             break
                     }
                 }
@@ -216,7 +216,7 @@ rl.on("line", input => {
                             checkStatus()
                             break
                         default:
-                            console.log("出错！")
+                            console.log("密码错误或用户不存在！")
                             break
                     }
                 }
@@ -305,7 +305,7 @@ function requestFunc(payload: object, callback: (err: any, res: request.Response
 }
 
 
-// 登录后每隔10s自动发送此消息，确定自身状态
+// 登录后每隔5s自动发送此消息，确定自身状态
 function checkStatus() {
     let check: checkReq = {type: "check", userID: userID};
     setInterval(() => {
@@ -315,5 +315,5 @@ function checkStatus() {
                 console.log(`Status: ${body.status}`)
             }
         })
-    }, 10000)
+    }, 5000)
 }
