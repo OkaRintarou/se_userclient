@@ -161,22 +161,22 @@ app.post('/', (req, res) => {
 
         // admin client
         case"startCharge":
-            //todo 这我不知道什么意思，但充电桩自动给队列中的第一个充电，
-            // chargerID命名方式为F_0，T_0
-            // 需要注意个问题，充电桩类几乎没有什么活动信息，我全保存在用户类里了
-
+            //todo 充电桩已经自动开启
             sendBack.type = "OK"
             sendBack.chargerID = p.chargerID
             sendBack.chargerStatus = "working"
             break
         case"endCharge":
-            //todo 同理，每5s自动调用的方法会自动开始充电，需要改的有点多
+            //todo 设计时没考虑充电桩还会关闭的情况，这个有点麻烦了
+            // 需要加个boolean表示开关机，并在所有遍历充电桩的地方做判断
+            // 充电桩是两层遍历，充电桩自己有一个排队队列
             sendBack.type = "OK"
             sendBack.chargerID = p.chargerID
             sendBack.chargerStatus = "closed"
             break
         case "showCharge":
-            //todo
+            //todo 充电桩状态我也没设字段，
+            // 可以在充电桩的基类中添加字段，并在响应操作时更新
             for (let i = 0; i < 3; i++) {
                 a.chargerID = `${i}`
                 a.chargerStatus = "working"
@@ -197,11 +197,9 @@ app.post('/', (req, res) => {
             sendBack.queueTime = 16
             break
         case "showTable":
-            for (let i = 0; i < UserInfo.detailList.length; i++) {
-                a = UserInfo.detailList[i]
-                sendBack[i] = a
-                a = {}
-            }
+            //todo 这里的处理类似showCharge
+
+
             break
     }
     console.log("Send:")
@@ -234,6 +232,7 @@ class UserInfo {
 
     }
 
+    // 构造函数
     constructor(userID: string, pwd: string) {
         this.userID = userID
         this.pwd = pwd
@@ -241,23 +240,30 @@ class UserInfo {
 
     userID: string;
     pwd: string;
+    // 闲置，等候区，充电中，充电桩队列
     status: "idle" | "wait" | "charging" | "chargerWait" = "idle"
+    // 目标充电量
     capacity: number = 0;
+    // 充电模式
     mode: "F" | "T" = "T"
+    // 已经充电量
     alreadyChargeCapacity = 0
     beginTime = "";
     endTime = ""
+    // 分配到的充电桩
     pile: ChargingPile | null = null
+    // 详单，结束充电时生成
     detail: detailRes | null = null
+    // 历史上产生的所有详单
     static detailList: detailRes[] = []
 
-    // 结账并生成详单，详单保存至detail，并在detailList备份一份，调用此方法时车辆已经离开充电桩，
+    // 结账并生成详单，详单保存至detail，并需要备份相关信息于历史报表（并未设置此列表），调用此方法时车辆已经离开充电桩，
     // 且alreadyChargeCapacity，beginTime，endTime，status均已赋值
     pay() {
         //todo
     }
 
-    // 添加用户
+    // 注册新用户
     static addUser(req: registerReq): registerRes {
         for (let u of UserInfo.userList) {
             if (u.userID == req.userID)
@@ -294,7 +300,7 @@ class UserInfo {
         return {status: "idle"}
     }
 
-    // 获取用户
+    // 获取用户引用
     static getUser(userID: string): UserInfo | null {
         for (let u of UserInfo.userList) {
             if (u.userID == userID) {
@@ -304,7 +310,7 @@ class UserInfo {
         return null
     }
 
-    // 取消充电
+    // 取消充电，充电中会自动结账
     static close(user: UserInfo): boolean {
         switch (user.status) {
             case "wait":
@@ -322,14 +328,18 @@ class UserInfo {
 
 }
 
+// 充电桩基类
 class ChargingPile {
     constructor(id: string) {
         this.id = id
     }
 
+    //充电桩id
     id: string;
+    // 充电桩对应队列
     userList: UserInfo[] = []
 
+    // 移除充电桩队列的等候者
     static removeWait(user: UserInfo) {
         for (let i = 0; i < user.pile!!.userList.length; i++) {
             if (user.pile?.userList[i].userID == user.userID) {
@@ -340,6 +350,7 @@ class ChargingPile {
         }
     }
 
+    // 移除正在充电并结账
     static removeCharging(user: UserInfo) {
         this.removeWait(user)
         user.pay()
@@ -348,7 +359,9 @@ class ChargingPile {
 
 }
 
+// 快充
 class FastChargingPile extends ChargingPile {
+    // 所有快充列表
     static piles: FastChargingPile[] = []
     static {
         for (let i = 0; i < FastChargingPileNum; i++) {
@@ -369,7 +382,7 @@ class FastChargingPile extends ChargingPile {
             }
             if (FastChargingPile.piles[i].userList.length < ChargingQueueLen && tmp < tmpMin) {
                 tmpMin = tmp
-                minID = -1
+                minID = i
             }
         }
         if (minID == -1) return null
@@ -379,7 +392,9 @@ class FastChargingPile extends ChargingPile {
 
 }
 
+//慢充
 class TrickleChargingPile extends ChargingPile {
+    // 所有慢充列表
     static piles: TrickleChargingPile[] = []
     static {
         for (let i = 0; i < TrickleChargingPileNum; i++) {
@@ -401,7 +416,7 @@ class TrickleChargingPile extends ChargingPile {
             }
             if (TrickleChargingPile.piles[i].userList.length < ChargingQueueLen && tmp < tmpMin) {
                 tmpMin = tmp
-                minID = -1
+                minID = i
             }
         }
         if (minID == -1) return null
@@ -411,9 +426,12 @@ class TrickleChargingPile extends ChargingPile {
 
 }
 
+//等候区
 class WaitingArea {
+    // 等候区列表
     static waitingList: UserInfo[] = []
 
+    // 添加入等候区，充电请求都会先放在这
     static add(u: UserInfo): boolean {
         if (this.waitingList.length < WaitingAreaSize) {
             u.status = "wait"
@@ -423,6 +441,7 @@ class WaitingArea {
         return false
     }
 
+    // 获取等候区排号
     static getWaitNum(user: UserInfo): string {
         let f = 0
         let t = 0
@@ -435,6 +454,7 @@ class WaitingArea {
         else return `T${t}`
     }
 
+    // 获取所在充电桩队列前方的人数
     static getForwardNum(user: UserInfo): number {
         if (user.status != "chargerWait")
             return -1;
@@ -456,6 +476,7 @@ class WaitingArea {
         return -1
     }
 
+    // 从等候区移除
     static remove(user: UserInfo): boolean {
         for (let i = 0; i < WaitingArea.waitingList.length; i++) {
             if (WaitingArea.waitingList[i].userID == user.userID) {
@@ -468,21 +489,24 @@ class WaitingArea {
     }
 }
 
-// 将等候区的车辆送去充电桩的排队队列
+// 将等候区的车辆送去充电桩的排队队列，一次执行遍历等候区所有车辆
 function addToCharger() {
     let flag = true
     while (flag) {
         let flag1 = true
         let p: ChargingPile | null = null;
+        console.log(`LENGTH: ${WaitingArea.waitingList.length}`)
         for (let i = 0; i < WaitingArea.waitingList.length; i++) {
             if (WaitingArea.waitingList[i].mode == "F") {
                 p = FastChargingPile.getBest()
             } else {
                 p = TrickleChargingPile.getBest()
             }
+            console.log(`Allocate ${p}`)
             if (p != null) {
                 flag1 = false
                 p.userList.push(WaitingArea.waitingList[i])
+                WaitingArea.waitingList[i].pile = p
                 WaitingArea.waitingList[i].status = "chargerWait"
                 WaitingArea.waitingList.splice(i, 1)
                 break
@@ -492,7 +516,7 @@ function addToCharger() {
     }
 }
 
-// 各充电桩给1号位充电1h，充满离场
+// 各充电桩给1号位充电1h，充满离场结账
 function chargersRun() {
     for (let pile of FastChargingPile.piles) {
         if (pile.userList.length != 0) {
@@ -538,4 +562,5 @@ setInterval(() => {
     addToCharger()
     chargersRun()
     updateTime()
+    console.log("RUNNING")
 }, 5000)
