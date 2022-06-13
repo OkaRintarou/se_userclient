@@ -177,7 +177,7 @@ app.post('/', (req, res) => {
         // admin client
         case"startCharge":
             pile = ChargingPile.getChargerPile((p as startChargeReq).chargerID)
-            sendBack = ChargingPile.startCharger(p)
+            sendBack = ChargingPile.startCharger(pile)
             break
         case"endCharge":
             pile = ChargingPile.getChargerPile((p as endChargeReq).chargerID)
@@ -212,26 +212,26 @@ app.post('/', (req, res) => {
         case "showTable":
             i = 0
             for (; i < FastChargingPileNum; i++) {
-                a.date=`${Time.getTime()}`
-                a.chargerID=FastChargingPile.piles[i].id
-                a.chargerCount=FastChargingPile.piles[i].chargeTimes
-                a.chargerTimeSum=FastChargingPile.piles[i].totalTime
-                a.capacitySum=FastChargingPile.piles[i].totalCapacity
-                a.chargerBillSum=FastChargingPile.piles[i].cBill
-                a.serviceBillSum=FastChargingPile.piles[i].sBill
-                a.totalBillSum=FastChargingPile.piles[i].totalBill
+                a.date = `${Time.getTime()}`
+                a.chargerID = FastChargingPile.piles[i].id
+                a.chargerCount = FastChargingPile.piles[i].chargeTimes
+                a.chargerTimeSum = FastChargingPile.piles[i].totalTime
+                a.capacitySum = FastChargingPile.piles[i].totalCapacity
+                a.chargerBillSum = FastChargingPile.piles[i].cBill
+                a.serviceBillSum = FastChargingPile.piles[i].sBill
+                a.totalBillSum = FastChargingPile.piles[i].totalBill
                 sendBack[i] = a
                 a = {}
             }
             for (let j = 0; j < TrickleChargingPileNum; j++) {
-                a.date=`${Time.getTime()}`
-                a.chargerID=TrickleChargingPile.piles[j].id
-                a.chargerCount=TrickleChargingPile.piles[j].chargeTimes
-                a.chargerTimeSum=TrickleChargingPile.piles[j].totalTime
-                a.capacitySum=TrickleChargingPile.piles[j].totalCapacity
-                a.chargerBillSum=TrickleChargingPile.piles[j].cBill
-                a.serviceBillSum=TrickleChargingPile.piles[j].sBill
-                a.totalBillSum=TrickleChargingPile.piles[j].totalBill
+                a.date = `${Time.getTime()}`
+                a.chargerID = TrickleChargingPile.piles[j].id
+                a.chargerCount = TrickleChargingPile.piles[j].chargeTimes
+                a.chargerTimeSum = TrickleChargingPile.piles[j].totalTime
+                a.capacitySum = TrickleChargingPile.piles[j].totalCapacity
+                a.chargerBillSum = TrickleChargingPile.piles[j].cBill
+                a.serviceBillSum = TrickleChargingPile.piles[j].sBill
+                a.totalBillSum = TrickleChargingPile.piles[j].totalBill
                 sendBack[i] = a
                 i++
                 a = {}
@@ -507,14 +507,13 @@ class ChargingPile {
 }
 
 // 快充
-class FastChargingPile
-    extends ChargingPile {
+class FastChargingPile extends ChargingPile {
     // 所有快充列表
     static piles: FastChargingPile[] = []
     static {
         for (let i = 0; i < FastChargingPileNum; i++) {
             FastChargingPile.piles.push(
-                new FastChargingPile(`T_${i}`)
+                new FastChargingPile(`F_${i+1}`)
             )
         }
     }
@@ -549,7 +548,7 @@ class TrickleChargingPile extends ChargingPile {
     static {
         for (let i = 0; i < TrickleChargingPileNum; i++) {
             TrickleChargingPile.piles.push(
-                new TrickleChargingPile(`T_${i}`)
+                new TrickleChargingPile(`T_${i+1}`)
             )
         }
     }
@@ -754,17 +753,17 @@ function checkError(piles: ChargingPile[]) {
 }
 
 function updateWaitTime() {
-    for(let u of WaitingArea.waitingList){
-        u.waitTime+=5
+    for (let u of WaitingArea.waitingList) {
+        u.waitTime += 5
     }
-    for(let p of FastChargingPile.piles){
-        for(let i=1;i<p.userList.length;i++){
-            p.userList[i].waitTime+=5
+    for (let p of FastChargingPile.piles) {
+        for (let i = 1; i < p.userList.length; i++) {
+            p.userList[i].waitTime += 5
         }
     }
-    for(let p of TrickleChargingPile.piles){
-        for(let i=1;i<p.userList.length;i++){
-            p.userList[i].waitTime+=5
+    for (let p of TrickleChargingPile.piles) {
+        for (let i = 1; i < p.userList.length; i++) {
+            p.userList[i].waitTime += 5
         }
     }
 }

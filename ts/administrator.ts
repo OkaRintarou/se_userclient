@@ -119,7 +119,7 @@ rl.on("line", input => {
                             body = body as { [key: string]: any }
                             for (let [k, v] of Object.entries(body)) {
                                 let b = v as showTableRes
-                                console.log(`日周月: ${b.date}\n` +
+                                console.log(`时间: ${b.date}\n` +
                                     `充电桩ID: ${b.chargerID}\n` +
                                     `累计充电次数: ${b.chargerCount}\n` +
                                     `累计充电时长: ${b.chargerTimeSum}\n` +
