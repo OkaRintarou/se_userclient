@@ -213,7 +213,7 @@ rl.on("line", input => {
                     switch (body.type) {
                         case "OK":
                             console.log("登录成功")
-                            checkStatus()
+                            // checkStatus()
                             break
                         default:
                             console.log("密码错误或用户不存在！")

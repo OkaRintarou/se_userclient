@@ -333,7 +333,7 @@ class UserInfo {
     pay() {
         this.detail = {
             ID: this.userID,
-            time: `${Time.getTime()}`,
+            time: `${Time.getTimeN()}`,
             chargerID: this.pile?.id ?? "null",
             capacity: this.capacity,
             chargeTime: this.time,
@@ -463,7 +463,7 @@ class ChargingPile {
         for (let i = 0; i < user.pile!!.userList.length; i++) {
             if (user.pile?.userList[i].userID == user.userID) {
                 user.pile.userList.splice(i, 1)
-                user.endTime = Time.getTime()
+                user.endTime = Time.getTimeN()
                 user.status = "idle"
             }
         }
@@ -646,14 +646,12 @@ function addToCharger(list: UserInfo[]) {
     while (flag) {
         let flag1 = true
         let p: ChargingPile | null = null;
-        console.log(`LENGTH: ${list.length}`)
         for (let i = 0; i < list.length; i++) {
             if (list[i].mode == "F") {
                 p = FastChargingPile.getBest()
             } else {
                 p = TrickleChargingPile.getBest()
             }
-            console.log(`Allocate ${p}`)
             if (p != null) {
                 flag1 = false
                 p.userList.push(list[i])
@@ -729,6 +727,16 @@ class Time {
         return `${this.hour}:${this.min}`
     }
 
+    static getTimeN():string{
+        let lh=this.hour
+        let lm=this.min+5
+        if(lm>=60){
+            lh++
+            lm-=60
+        }
+        return `${lh}:${lm}`
+    }
+
 }
 
 function checkError(piles: ChargingPile[]) {
@@ -770,14 +778,14 @@ function updateWaitTime() {
 
 
 let task = () => {
-    console.log(`Current Time: ${Time.getTime()}`)
+    console.log(`Last Time: ${Time.getTime()}`)
     checkError(FastChargingPile.piles)
     checkError(TrickleChargingPile.piles)
     addToCharger(WaitingArea.waitingList)
     chargersRun()
     updateWaitTime()
     Time.update()
-    console.log(`Next Time: ${Time.getTime()}`)
+    console.log(`Current Time: ${Time.getTime()}`)
 }
 
 const rl = ReadLine.createInterface(process.stdin, process.stdout)
