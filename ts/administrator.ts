@@ -14,13 +14,13 @@ import * as readline from "readline";
 type startChargeReq = { type: "startCharge", chargerID: string }
 type startChargeRes = { type: "OK" | "ERR", chargerID: string, chargerStatus: "working" | "closed" | "failed" }
 
-type endChargeReq = { type: "endCharge", chargerID: string ,time:number}
+type endChargeReq = { type: "endCharge", chargerID: string, time: number }
 type endChargeRes = { type: "OK" | "ERR", chargerID: string, chargerStatus: "working" | "closed" | "failed" }
 
 type showChargeReq = { type: "showCharge" }
 type showChargeRes = {
     chargerID: string, chargerStatus: "working" | "closed" | "failed",
-    chargerCount:number,chargerTimeSum: number, capacitySum: number
+    chargerCount: number, chargerTimeSum: number, capacitySum: number
 }
 
 type waitCarReq = { type: "WaitCarMessage", chargerID: string }
@@ -39,12 +39,13 @@ type showTableRes = {
 enum Status {
     init,
     start,
-    end,
+    end0, end1,
     waitCar
 }
 
 let chargerID = "null"
 let chargerStatus = "working"
+let time = 0
 
 function help() {
     console.log(`\u001b[33m输入数字以发起请求:
@@ -77,8 +78,8 @@ rl.on("line", input => {
                     break
 
                 case "2":
-                    //关闭充电桩
-                    status = Status.end
+                    //关闭充电桩 bo:改了这里
+                    status = Status.end0
                     console.log("输入要关闭的充电桩编号:")
                     rl.prompt()
                     break
@@ -89,8 +90,8 @@ rl.on("line", input => {
                     requestFunc(showCReq, (err, res, body) => {
                         if (!err && res.statusCode == 200) {
                             body = body as { [key: string]: any }
-                            for (let [k,v] of Object.entries(body)) {
-                                let b=v as showChargeRes
+                            for (let [k, v] of Object.entries(body)) {
+                                let b = v as showChargeRes
                                 console.log(`充电桩ID: ${b.chargerID}\n` +
                                     `充电桩状态: ${b.chargerStatus}\n` +
                                     `累计充电次数: ${b.chargerCount}\n` +
@@ -116,7 +117,7 @@ rl.on("line", input => {
                     requestFunc(showTReq, (err, res, body) => {
                         if (!err && res.statusCode == 200) {
                             body = body as { [key: string]: any }
-                            for(let [k,v] of Object.entries(body)) {
+                            for (let [k, v] of Object.entries(body)) {
                                 let b = v as showTableRes
                                 console.log(`日周月: ${b.date}\n` +
                                     `充电桩ID: ${b.chargerID}\n` +
@@ -164,9 +165,18 @@ rl.on("line", input => {
             status = Status.init
             break
 
-        case Status.end:
+        case Status.end0:
+            //bo:改了这里
             chargerID = input
-            let endReq: endChargeReq = {type: "endCharge", chargerID: chargerID}
+            status = Status.end1
+            console.log("输入关闭时长(单位:min):")
+            rl.prompt()
+            break
+
+        case Status.end1:
+            //bo:改了这里
+            time = Number(input)
+            let endReq: endChargeReq = {type: "endCharge", chargerID: chargerID, time: time}
             requestFunc(endReq, (err, res, body) => {
                 if (!err && res.statusCode == 200) {
                     body = body as endChargeRes
@@ -186,15 +196,20 @@ rl.on("line", input => {
 
         case Status.waitCar:
             chargerID = input
+            //bo:改了这里
             let carReq: waitCarReq = {type: "WaitCarMessage", chargerID: chargerID}
             requestFunc(carReq, (err, res, body) => {
                 if (!err && res.statusCode == 200) {
-                    body = body as waitCarRes
-                    console.log(`充电桩ID: ${body.chargerID}\n` +
-                        `用户ID: ${body.userID}\n` +
-                        `车辆电池总容量: ${body.carCapacity}度\n` +
-                        `请求充电量: ${body.capacity}度\n` +
-                        `排队时长: ${body.queueTime}`)
+                    body = body as { [key: string]: any }
+                    for (let [k, v] of Object.entries(body)) {
+                        let b = v as waitCarRes
+                        console.log(`充电桩ID: ${b.chargerID}\n` +
+                            `用户ID: ${b.userID}\n` +
+                            `车辆电池总容量: ${b.carCapacity}度\n` +
+                            `请求充电量: ${b.capacity}度\n` +
+                            `排队时长: ${b.queueTime}`)
+                        console.log('-'.repeat(30))
+                    }
                 }
             })
             rl.prompt()
