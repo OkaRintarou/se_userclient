@@ -14,13 +14,13 @@ import * as readline from "readline";
 type startChargeReq = { type: "startCharge", chargerID: string }
 type startChargeRes = { type: "OK" | "ERR", chargerID: string, chargerStatus: "working" | "closed" | "failed" }
 
-type endChargeReq = { type: "endCharge", chargerID: string }
+type endChargeReq = { type: "endCharge", chargerID: string ,time:number}
 type endChargeRes = { type: "OK" | "ERR", chargerID: string, chargerStatus: "working" | "closed" | "failed" }
 
 type showChargeReq = { type: "showCharge" }
 type showChargeRes = {
-    chargerID: string, chargerStatus: "working" | "closed" | "failed", chargerCount: number,
-    chargerSum: number, chargerTimeSum: number, capacitySum: number
+    chargerID: string, chargerStatus: "working" | "closed" | "failed",
+    chargerCount:number,chargerTimeSum: number, capacitySum: number
 }
 
 type waitCarReq = { type: "WaitCarMessage", chargerID: string }

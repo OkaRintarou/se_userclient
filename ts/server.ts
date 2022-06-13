@@ -1,12 +1,11 @@
 import express from "express";
 import bodyParser from "body-parser";
-
-let time = ""
+import * as ReadLine from "readline";
 
 // 设置参数
-const FastChargingPileNum = 2
-const TrickleChargingPileNum = 3
-const WaitingAreaSize = 6
+const FastChargingPileNum = 3
+const TrickleChargingPileNum = 2
+const WaitingAreaSize = 10
 const ChargingQueueLen = 3
 
 // user client
@@ -45,13 +44,13 @@ type checkRes = { status: "wait" | "charging" | "idle" | "chargerWait" }
 type startChargeReq = { type: "startCharge", chargerID: string }
 type startChargeRes = { type: "OK" | "ERR", chargerID: string, chargerStatus: "working" | "idle" | "failed" }
 
-type endChargeReq = { type: "endCharge", chargerID: string }
+type endChargeReq = { type: "endCharge", chargerID: string, time: number }
 type endChargeRes = { type: "OK" | "ERR", chargerID: string, chargerStatus: "working" | "idle" | "failed" }
 
 type showChargeReq = { type: "showCharge" }
 type showChargeRes = {
-    chargerID: string, chargerStatus: "working" | "idle" | "failed", chargerCount: number,
-    chargerSum: number, chargerTimeSum: number, capacitySum: number
+    chargerID: string, chargerStatus: "working" | "idle" | "failed",
+    chargerCount: number, chargerTimeSum: number, capacitySum: number
 }
 
 type waitCarReq = { type: "WaitCarMessage", chargerID: string }
@@ -79,6 +78,8 @@ app.post('/', (req, res) => {
     let sendBack: { [key: string]: any } = {}
     let a: { [key: string]: any } = {}
     let u: UserInfo | null = null
+    let pile: ChargingPile
+    let i = 0;
     switch (p.type) {
         //user client
         case"register":
@@ -100,6 +101,13 @@ app.post('/', (req, res) => {
                 if (WaitingArea.add(u)) {
                     sendBack.type = "OK"
                     sendBack.waitNum = WaitingArea.getWaitNum(u)
+                    u.alreadyChargeCapacity = 0
+                    u.beginTime = "";
+                    u.endTime = "";
+                    u.cBill = 0;
+                    u.sBill = 0;
+                    u.time = 0
+                    u.waitTime = 0
                 } else {
                     sendBack.type = "ERR"
                 }
@@ -116,6 +124,13 @@ app.post('/', (req, res) => {
                     if (WaitingArea.add(u)) {
                         sendBack.type = "OK"
                         sendBack.waitNum = WaitingArea.getWaitNum(u)
+                        u.alreadyChargeCapacity = 0
+                        u.beginTime = "";
+                        u.endTime = "";
+                        u.cBill = 0;
+                        u.sBill = 0;
+                        u.time = 0
+                        u.waitTime = 0
                     } else {
                         sendBack.type = "ERR"
                         sendBack.waitNum = "null"
@@ -161,45 +176,66 @@ app.post('/', (req, res) => {
 
         // admin client
         case"startCharge":
-            //todo 充电桩已经自动开启
-            sendBack.type = "OK"
-            sendBack.chargerID = p.chargerID
-            sendBack.chargerStatus = "working"
+            pile = ChargingPile.getChargerPile((p as startChargeReq).chargerID)
+            sendBack = ChargingPile.startCharger(p)
             break
         case"endCharge":
-            //todo 设计时没考虑充电桩还会关闭的情况，这个有点麻烦了
-            // 需要加个boolean表示开关机，并在所有遍历充电桩的地方做判断
-            // 充电桩是两层遍历，充电桩自己有一个排队队列
-            sendBack.type = "OK"
-            sendBack.chargerID = p.chargerID
-            sendBack.chargerStatus = "closed"
+            pile = ChargingPile.getChargerPile((p as endChargeReq).chargerID)
+            sendBack = ChargingPile.closeCharger(pile, (p as endChargeReq).time)
             break
         case "showCharge":
-            //todo 充电桩状态我也没设字段，
-            // 可以在充电桩的基类中添加字段，并在响应操作时更新
-            for (let i = 0; i < 3; i++) {
-                a.chargerID = `${i}`
-                a.chargerStatus = "working"
-                a.chargerCount = 9
-                a.chargerSum = 1113
-                a.chargerTimeSum = 1113
-                a.capacitySum = 1113
+            i = 0
+            for (; i < FastChargingPileNum; i++) {
+                a.chargerID = FastChargingPile.piles[i].id
+                a.chargerStatus = ChargingPile.getChargerStatus(FastChargingPile.piles[i])
+                a.chargerCount = FastChargingPile.piles[i].chargeTimes
+                a.chargerTimeSum = FastChargingPile.piles[i].totalTime
+                a.capacitySum = FastChargingPile.piles[i].totalCapacity
                 sendBack[i] = a
+                a = {}
+            }
+            for (let j = 0; j < TrickleChargingPileNum; j++) {
+                a.chargerID = TrickleChargingPile.piles[j].id
+                a.chargerStatus = ChargingPile.getChargerStatus(TrickleChargingPile.piles[j])
+                a.chargerCount = TrickleChargingPile.piles[j].chargeTimes
+                a.chargerTimeSum = TrickleChargingPile.piles[j].totalTime
+                a.capacitySum = TrickleChargingPile.piles[j].totalCapacity
+                sendBack[i] = a
+                i++
                 a = {}
             }
             break
         case "WaitCarMessage":
-            //todo
-            sendBack.chargerID = p.chargerID
-            sendBack.userID = "004"
-            sendBack.carCapacity = 1113
-            sendBack.capacity = 1113
-            sendBack.queueTime = 16
+            pile = ChargingPile.getChargerPile((p as waitCarReq).chargerID)
+            sendBack = pile.waitCarInfo
             break
         case "showTable":
-            //todo 这里的处理类似showCharge
-
-
+            i = 0
+            for (; i < FastChargingPileNum; i++) {
+                a.date=`${Time.getTime()}`
+                a.chargerID=FastChargingPile.piles[i].id
+                a.chargerCount=FastChargingPile.piles[i].chargeTimes
+                a.chargerTimeSum=FastChargingPile.piles[i].totalTime
+                a.capacitySum=FastChargingPile.piles[i].totalCapacity
+                a.chargerBillSum=FastChargingPile.piles[i].cBill
+                a.serviceBillSum=FastChargingPile.piles[i].sBill
+                a.totalBillSum=FastChargingPile.piles[i].totalBill
+                sendBack[i] = a
+                a = {}
+            }
+            for (let j = 0; j < TrickleChargingPileNum; j++) {
+                a.date=`${Time.getTime()}`
+                a.chargerID=TrickleChargingPile.piles[j].id
+                a.chargerCount=TrickleChargingPile.piles[j].chargeTimes
+                a.chargerTimeSum=TrickleChargingPile.piles[j].totalTime
+                a.capacitySum=TrickleChargingPile.piles[j].totalCapacity
+                a.chargerBillSum=TrickleChargingPile.piles[j].cBill
+                a.serviceBillSum=TrickleChargingPile.piles[j].sBill
+                a.totalBillSum=TrickleChargingPile.piles[j].totalBill
+                sendBack[i] = a
+                i++
+                a = {}
+            }
             break
     }
     console.log("Send:")
@@ -229,7 +265,6 @@ class UserInfo {
             new UserInfo("9", "9"),
             new UserInfo("10", "10"),
         )
-
     }
 
     // 构造函数
@@ -249,7 +284,18 @@ class UserInfo {
     // 已经充电量
     alreadyChargeCapacity = 0
     beginTime = "";
-    endTime = ""
+    endTime = "";
+    cBill = 0;
+    sBill = 0;
+    //充电时长
+    time = 0
+    //排队时长
+    waitTime = 0
+
+    get totalBill() {
+        return this.cBill + this.sBill;
+    }
+
     // 分配到的充电桩
     pile: ChargingPile | null = null
     // 详单，结束充电时生成
@@ -257,10 +303,46 @@ class UserInfo {
     // 历史上产生的所有详单
     static detailList: detailRes[] = []
 
-    // 结账并生成详单，详单保存至detail，并需要备份相关信息于历史报表（并未设置此列表），调用此方法时车辆已经离开充电桩，
-    // 且alreadyChargeCapacity，beginTime，endTime，status均已赋值
+    addBill() {
+        let unit: number
+        if (this.mode == "F") unit = 30 / 12
+        else unit = 10 / 12
+        if ((Time.hour >= 10 && Time.hour < 15)
+            || (Time.hour >= 18 && Time.hour < 21)) {
+            this.cBill += unit
+            this.sBill += unit * 0.8
+            this.pile!!.cBill += unit
+            this.pile!!.sBill += unit * 0.8
+        } else if ((Time.hour >= 7 && Time.hour < 10) ||
+            (Time.hour >= 15 && Time.hour < 18) ||
+            (Time.hour >= 21 && Time.hour < 23)) {
+            this.cBill += unit * 0.7
+            this.sBill += unit * 0.8
+            this.pile!!.cBill += unit * 0.7
+            this.pile!!.sBill += unit * 0.8
+        } else {
+            this.cBill += unit * 0.4
+            this.sBill += unit * 0.8
+            this.pile!!.cBill += unit * 0.4
+            this.pile!!.sBill += unit * 0.8
+        }
+    }
+
+
+    // 其实是生成详单
     pay() {
-        //todo
+        this.detail = {
+            ID: this.userID,
+            time: `${Time.getTime()}`,
+            chargerID: this.pile?.id ?? "null",
+            capacity: this.capacity,
+            chargeTime: this.time,
+            beginTime: this.beginTime,
+            endTime: this.endTime,
+            chargeBill: this.cBill,
+            serviceBill: this.sBill,
+            totalBill: this.totalBill
+        }
     }
 
     // 注册新用户
@@ -338,13 +420,50 @@ class ChargingPile {
     id: string;
     // 充电桩对应队列
     userList: UserInfo[] = []
+    // 是否可用
+    available = true
+    // 剩余故障时间
+    errorTimeLast = 0;
+    // 充电次数
+    chargeTimes = 0
+    // 充电总时长
+    totalTime = 0
+    // 充电总电量
+    totalCapacity = 0
+
+    // 总费用
+    get totalBill() {
+        return this.cBill + this.sBill
+    }
+
+    // 充电费用
+    cBill = 0
+    // 服务费用
+    sBill = 0
+
+
+    get waitCarInfo(): { [key: string]: any } {
+        let a: { [key: string]: any } = {}
+        let r: { [key: string]: any } = {}
+        for (let i = 1; i < this.userList.length; i++) {
+            a.chargerID = this.id
+            a.userID = this.userList[i].userID
+            a.carCapacity = 10000
+            a.capacity = this.userList[i].capacity
+            a.queueTime = this.userList[i].waitTime
+            r[i - 1] = a
+            a = {}
+        }
+        return r
+    }
+
 
     // 移除充电桩队列的等候者
     static removeWait(user: UserInfo) {
         for (let i = 0; i < user.pile!!.userList.length; i++) {
             if (user.pile?.userList[i].userID == user.userID) {
                 user.pile.userList.splice(i, 1)
-                user.endTime = time
+                user.endTime = Time.getTime()
                 user.status = "idle"
             }
         }
@@ -356,11 +475,40 @@ class ChargingPile {
         user.pay()
     }
 
+    static getChargerPile(chargerID: string): ChargingPile {
+        let mode = chargerID[0]
+        let id = Number(chargerID.substring(2))
+        if (mode == "F") return FastChargingPile.piles[id]
+        else return TrickleChargingPile.piles[id]
+    }
+
+    static getChargerStatus(pile: ChargingPile): "working" | "idle" | "failed" {
+        if (!pile.available) return "failed"
+        if (pile.userList.length == 0) return "idle"
+        return "working"
+    }
+
+
+    // 启动充电桩
+    static startCharger(pile: ChargingPile): startChargeRes {
+        pile.available = true
+        pile.errorTimeLast = 0
+        return {type: "OK", chargerID: pile.id, chargerStatus: ChargingPile.getChargerStatus(pile)}
+    }
+
+    static closeCharger(pile: ChargingPile, time: number):
+        endChargeRes {
+        pile.available = false
+        pile.errorTimeLast = time
+        return {type: "OK", chargerID: pile.id, chargerStatus: "failed"}
+    }
+
 
 }
 
 // 快充
-class FastChargingPile extends ChargingPile {
+class FastChargingPile
+    extends ChargingPile {
     // 所有快充列表
     static piles: FastChargingPile[] = []
     static {
@@ -380,7 +528,9 @@ class FastChargingPile extends ChargingPile {
             for (let u of FastChargingPile.piles[i].userList) {
                 tmp += u.capacity
             }
-            if (FastChargingPile.piles[i].userList.length < ChargingQueueLen && tmp < tmpMin) {
+            if (FastChargingPile.piles[i].available &&
+                FastChargingPile.piles[i].userList.length < ChargingQueueLen &&
+                tmp < tmpMin) {
                 tmpMin = tmp
                 minID = i
             }
@@ -414,7 +564,9 @@ class TrickleChargingPile extends ChargingPile {
             for (let u of TrickleChargingPile.piles[i].userList) {
                 tmp += u.capacity
             }
-            if (TrickleChargingPile.piles[i].userList.length < ChargingQueueLen && tmp < tmpMin) {
+            if (TrickleChargingPile.piles[i].available &&
+                TrickleChargingPile.piles[i].userList.length < ChargingQueueLen &&
+                tmp < tmpMin) {
                 tmpMin = tmp
                 minID = i
             }
@@ -490,14 +642,14 @@ class WaitingArea {
 }
 
 // 将等候区的车辆送去充电桩的排队队列，一次执行遍历等候区所有车辆
-function addToCharger() {
+function addToCharger(list: UserInfo[]) {
     let flag = true
     while (flag) {
         let flag1 = true
         let p: ChargingPile | null = null;
-        console.log(`LENGTH: ${WaitingArea.waitingList.length}`)
-        for (let i = 0; i < WaitingArea.waitingList.length; i++) {
-            if (WaitingArea.waitingList[i].mode == "F") {
+        console.log(`LENGTH: ${list.length}`)
+        for (let i = 0; i < list.length; i++) {
+            if (list[i].mode == "F") {
                 p = FastChargingPile.getBest()
             } else {
                 p = TrickleChargingPile.getBest()
@@ -505,10 +657,10 @@ function addToCharger() {
             console.log(`Allocate ${p}`)
             if (p != null) {
                 flag1 = false
-                p.userList.push(WaitingArea.waitingList[i])
-                WaitingArea.waitingList[i].pile = p
-                WaitingArea.waitingList[i].status = "chargerWait"
-                WaitingArea.waitingList.splice(i, 1)
+                p.userList.push(list[i])
+                list[i].pile = p
+                list[i].status = "chargerWait"
+                list.splice(i, 1)
                 break
             }
         }
@@ -523,9 +675,14 @@ function chargersRun() {
             let u = pile.userList[0]
             if (u.status != "charging") {
                 u.status = "charging"
-                u.beginTime = time
+                u.beginTime = Time.getTime()
+                pile.chargeTimes++
             }
-            u.alreadyChargeCapacity += 30
+            pile.totalTime += 5
+            u.time += 5
+            pile.totalCapacity += 30 / 12
+            u.alreadyChargeCapacity += 30 / 12
+            u.addBill()
             if (u.alreadyChargeCapacity >= u.capacity) {
                 u.alreadyChargeCapacity = u.capacity
                 u.status = "idle"
@@ -538,9 +695,14 @@ function chargersRun() {
             let u = pile.userList[0]
             if (u.status != "charging") {
                 u.status = "charging"
-                u.beginTime = time
+                u.beginTime = Time.getTime()
+                pile.chargeTimes++
             }
-            u.alreadyChargeCapacity += 10
+            pile.totalTime += 5
+            u.time += 5
+            pile.totalCapacity += 10 / 12
+            u.alreadyChargeCapacity += 10 / 12
+            u.addBill()
             if (u.alreadyChargeCapacity >= u.capacity) {
                 u.alreadyChargeCapacity = u.capacity
                 u.status = "idle"
@@ -551,16 +713,76 @@ function chargersRun() {
 }
 
 
-// todo 更新时间，1h为单位，变量为time，初值没设置，在最上面
-function updateTime() {
+class Time {
+    static hour: number = 6
+    static min: number = 0
+
+    // 一次+5min
+    static update() {
+        this.min += 5
+        if (this.min >= 60) {
+            this.hour += 1
+            this.min -= 60
+        }
+    }
+
+    static getTime(): string {
+        return `${this.hour}:${this.min}`
+    }
 
 }
 
+function checkError(piles: ChargingPile[]) {
+    for (let pile of piles) {
+        if (pile.available || pile.userList.length == 0) continue
+        if (pile.errorTimeLast == 0) {
+            pile.available = true
+            continue
+        }
+        let u = pile.userList[0]
+        ChargingPile.removeCharging(u)
+        let list: UserInfo[] = []
+        list.push(u)
+        list.push(...pile.userList)
+        addToCharger(list)
+        for (let i of list) {
+            WaitingArea.add(i)
+        }
+        pile.errorTimeLast -= 5
+        if (pile.errorTimeLast <= 0) pile.errorTimeLast = 0
+    }
+}
 
-// 定时触发任务，每5s当1h
-setInterval(() => {
-    addToCharger()
+function updateWaitTime() {
+    for(let u of WaitingArea.waitingList){
+        u.waitTime+=5
+    }
+    for(let p of FastChargingPile.piles){
+        for(let i=1;i<p.userList.length;i++){
+            p.userList[i].waitTime+=5
+        }
+    }
+    for(let p of TrickleChargingPile.piles){
+        for(let i=1;i<p.userList.length;i++){
+            p.userList[i].waitTime+=5
+        }
+    }
+}
+
+
+let task = () => {
+    console.log(`Current Time: ${Time.getTime()}`)
+    checkError(FastChargingPile.piles)
+    checkError(TrickleChargingPile.piles)
+    addToCharger(WaitingArea.waitingList)
     chargersRun()
-    updateTime()
-    console.log("RUNNING")
-}, 5000)
+    updateWaitTime()
+    Time.update()
+    console.log(`Next Time: ${Time.getTime()}`)
+}
+
+const rl = ReadLine.createInterface(process.stdin, process.stdout)
+rl.on("line", task)
+rl.on("close", () => {
+    console.log("再次输入Ctrl+C以退出。")
+})
