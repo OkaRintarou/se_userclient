@@ -330,7 +330,7 @@ class UserInfo {
 
 
     // 其实是生成详单
-    pay(isError:boolean) {
+    pay(isError: boolean) {
         this.detail = {
             ID: this.userID,
             time: Time.getTimeN(),
@@ -343,8 +343,8 @@ class UserInfo {
             serviceBill: this.sBill,
             totalBill: this.totalBill
         }
-        if(isError){
-            this.detail.time=Time.getTime()
+        if (isError) {
+            this.detail.time = Time.getTime()
         }
     }
 
@@ -405,7 +405,7 @@ class UserInfo {
                 ChargingPile.removeWait(user)
                 break
             case "charging":
-                ChargingPile.removeCharging(user,true)
+                ChargingPile.removeCharging(user, true)
                 break
         }
         return true
@@ -473,7 +473,7 @@ class ChargingPile {
     }
 
     // 移除正在充电并结账
-    static removeCharging(user: UserInfo,isError:boolean) {
+    static removeCharging(user: UserInfo, isError: boolean) {
         this.removeWait(user)
         user.pay(isError)
     }
@@ -616,14 +616,14 @@ class WaitingArea {
             for (let pile of FastChargingPile.piles) {
                 for (let i = 0; i < pile.userList.length; i++) {
                     if (pile.userList[i].userID == user.userID)
-                        return i;
+                        return i - 1;
                 }
             }
         } else {
             for (let pile of TrickleChargingPile.piles) {
                 for (let i = 0; i < pile.userList.length; i++) {
                     if (pile.userList[i].userID == user.userID)
-                        return i;
+                        return i - 1;
                 }
             }
         }
@@ -686,7 +686,7 @@ function chargersRun() {
             if (u.alreadyChargeCapacity >= u.capacity) {
                 u.alreadyChargeCapacity = u.capacity
                 u.status = "idle"
-                ChargingPile.removeCharging(u,false)
+                ChargingPile.removeCharging(u, false)
             }
         }
     }
@@ -706,7 +706,7 @@ function chargersRun() {
             if (u.alreadyChargeCapacity >= u.capacity) {
                 u.alreadyChargeCapacity = u.capacity
                 u.status = "idle"
-                ChargingPile.removeCharging(u,false)
+                ChargingPile.removeCharging(u, false)
             }
         }
     }
@@ -730,12 +730,12 @@ class Time {
         return `${this.hour}:${this.min}`
     }
 
-    static getTimeN():string{
-        let lh=this.hour
-        let lm=this.min+5
-        if(lm>=60){
+    static getTimeN(): string {
+        let lh = this.hour
+        let lm = this.min + 5
+        if (lm >= 60) {
             lh++
-            lm-=60
+            lm -= 60
         }
         return `${lh}:${lm}`
     }
@@ -750,7 +750,7 @@ function checkError(piles: ChargingPile[]) {
             continue
         }
         let u = pile.userList[0]
-        ChargingPile.removeCharging(u,true)
+        ChargingPile.removeCharging(u, true)
         let list: UserInfo[] = []
         list.push(u)
         list.push(...pile.userList)
