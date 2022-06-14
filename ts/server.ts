@@ -785,9 +785,41 @@ function errorListToCharger() {
     addToCharger(ChargingPile.errorList)
 }
 
+function printChargerInfo() {
+    function printUserInfo(pile: ChargingPile) {
+        console.log(`ID: ${pile.id}`)
+        for (let u of pile.userList) {
+            console.log(`(${u.userID},${u.alreadyChargeCapacity},${u.totalBill})`)
+        }
+    }
+
+    console.log("充电桩服务信息: (车号,已充电量,当前费用)")
+    for (let pile of FastChargingPile.piles) {
+        printUserInfo(pile)
+    }
+    for (let pile of TrickleChargingPile.piles) {
+        printUserInfo(pile)
+    }
+    console.log("-".repeat(30))
+}
+
+function printWaitingAreaInfo() {
+    console.log("等候区信息: (车号,充电类型,充电量)")
+    for (let u of WaitingArea.waitingList) {
+        console.log(`(${u.userID},${u.mode},${u.capacity})`)
+    }
+    console.log("-".repeat(30))
+}
+
+function printInfo(){
+    printChargerInfo()
+    printWaitingAreaInfo()
+}
+
 
 let task = () => {
     console.log(`Last Time: ${Time.getTime()}`)
+    printInfo()
     checkError(FastChargingPile.piles)
     checkError(TrickleChargingPile.piles)
     errorListToCharger()
@@ -796,6 +828,7 @@ let task = () => {
     updateWaitTime()
     Time.update()
     console.log(`Current Time: ${Time.getTime()}`)
+    printInfo()
 }
 
 const rl = ReadLine.createInterface(process.stdin, process.stdout)
