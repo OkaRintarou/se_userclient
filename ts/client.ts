@@ -213,7 +213,6 @@ rl.on("line", input => {
                     switch (body.type) {
                         case "OK":
                             console.log("登录成功")
-                            // checkStatus()
                             break
                         default:
                             console.log("密码错误或用户不存在！")
@@ -302,18 +301,4 @@ function requestFunc(payload: object, callback: (err: any, res: request.Response
         },
         body: payload
     }, callback)
-}
-
-
-// 登录后每隔5s自动发送此消息，确定自身状态
-function checkStatus() {
-    let check: checkReq = {type: "check", userID: userID};
-    setInterval(() => {
-        requestFunc(check, (err, res, body) => {
-            if (!err && res.statusCode == 200) {
-                body = body as checkRes
-                console.log(`Status: ${body.status}`)
-            }
-        })
-    }, 5000)
 }

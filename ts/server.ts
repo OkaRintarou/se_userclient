@@ -335,7 +335,7 @@ class UserInfo {
             ID: this.userID,
             time: Time.getTimeN(),
             chargerID: this.pile?.id ?? "null",
-            capacity: this.capacity,
+            capacity: this.alreadyChargeCapacity,
             chargeTime: this.time,
             beginTime: this.beginTime,
             endTime: this.endTime,
