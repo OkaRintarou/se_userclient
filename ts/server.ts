@@ -745,8 +745,9 @@ function checkError(piles: ChargingPile[]) {
         let list: UserInfo[] = []
         list.push(u)
         list.push(...pile.userList)
-        for (let u of pile.userList) {
-            ChargingPile.removeWait(u, true)
+        while (pile.userList.length != 0) {
+            let user = pile.userList[0]
+            ChargingPile.removeWait(user, true)
         }
         addToCharger(list)
         if (list.length != 0)
