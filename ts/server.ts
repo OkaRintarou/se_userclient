@@ -513,7 +513,7 @@ class FastChargingPile extends ChargingPile {
     static {
         for (let i = 0; i < FastChargingPileNum; i++) {
             FastChargingPile.piles.push(
-                new FastChargingPile(`F_${i+1}`)
+                new FastChargingPile(`F_${i}`)
             )
         }
     }
@@ -548,7 +548,7 @@ class TrickleChargingPile extends ChargingPile {
     static {
         for (let i = 0; i < TrickleChargingPileNum; i++) {
             TrickleChargingPile.piles.push(
-                new TrickleChargingPile(`T_${i+1}`)
+                new TrickleChargingPile(`T_${i}`)
             )
         }
     }
