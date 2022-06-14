@@ -415,6 +415,8 @@ class UserInfo {
 
 // 充电桩基类
 class ChargingPile {
+    static errorList: UserInfo[] = []
+
     constructor(id: string) {
         this.id = id
     }
@@ -520,6 +522,7 @@ class FastChargingPile extends ChargingPile {
             )
         }
     }
+
 
     // 获取等待时间最短且队列有位置的充电桩
     static getBest(): FastChargingPile | null {
@@ -755,9 +758,8 @@ function checkError(piles: ChargingPile[]) {
         list.push(u)
         list.push(...pile.userList)
         addToCharger(list)
-        for (let i of list) {
-            WaitingArea.add(i)
-        }
+        if (list.length != 0)
+            ChargingPile.errorList.push(...list)
         pile.errorTimeLast -= 5
         if (pile.errorTimeLast <= 0) pile.errorTimeLast = 0
     }
@@ -779,11 +781,16 @@ function updateWaitTime() {
     }
 }
 
+function errorListToCharger() {
+    addToCharger(ChargingPile.errorList)
+}
+
 
 let task = () => {
     console.log(`Last Time: ${Time.getTime()}`)
     checkError(FastChargingPile.piles)
     checkError(TrickleChargingPile.piles)
+    errorListToCharger()
     addToCharger(WaitingArea.waitingList)
     chargersRun()
     updateWaitTime()
