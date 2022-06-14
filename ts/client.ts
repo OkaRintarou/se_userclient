@@ -38,10 +38,6 @@ type numForwardRes = { num: number }
 type closeReq = { type: "close", userID: string }
 type closeRes = { type: "OK" | "ERR" }
 
-// 定时发送，判断自身状态
-type checkReq = { type: "check", userID: string }
-type checkRes = { status: "wait" | "charging" | "idle"|"chargerWait" }
-
 enum Status {
     init,
     reg0, reg1, reg2,
@@ -230,7 +226,7 @@ rl.on("line", input => {
             status = Status.charge1
             break;
         case Status.charge1:
-            capacity = parseInt(input)
+            capacity = Number(input)
             let cReq: chargeReq
             if (mode == "F")
                 cReq = {type: "charge", userID: userID, mode: mode, capacity: capacity}
@@ -239,7 +235,7 @@ rl.on("line", input => {
             requestFunc(cReq, (err, res, body) => {
                 if (!err && res.statusCode == 200) {
                     body = body as chargeRes
-                    switch (body.type){
+                    switch (body.type) {
                         case "OK":
                             console.log(`请求成功，排队号码为: ${body.waitNum}`)
                             break
@@ -259,7 +255,7 @@ rl.on("line", input => {
             status = Status.changeMode1
             break;
         case Status.changeMode1:
-            capacity = parseInt(input)
+            capacity = Number(input)
             let cmReq: changeModeReq
             if (mode == "F")
                 cmReq = {type: "changeMode", userID: userID, mode: mode, capacity: capacity}
@@ -268,7 +264,7 @@ rl.on("line", input => {
             requestFunc(cmReq, (err, res, body) => {
                 if (!err && res.statusCode == 200) {
                     body = body as changeModeRes
-                    switch (body.type){
+                    switch (body.type) {
                         case "OK":
                             console.log(`更改请求成功，排队号码为: ${body.waitNum}`)
                             break

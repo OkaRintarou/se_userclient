@@ -37,8 +37,6 @@ type numForwardRes = { num: number }
 type closeReq = { type: "close", userID: string }
 type closeRes = { type: "OK" | "ERR" }
 
-type checkReq = { type: "check", userID: string }
-type checkRes = { status: "wait" | "charging" | "idle" | "chargerWait" }
 
 // admin client
 type startChargeReq = { type: "startCharge", chargerID: string }
@@ -169,10 +167,6 @@ app.post('/', (req, res) => {
                 sendBack.type = "ERR"
             }
             break
-        case "check":
-            sendBack = UserInfo.getStatus(p)
-            break
-
 
         // admin client
         case"startCharge":
@@ -375,15 +369,6 @@ class UserInfo {
         return {type: "ERR"}
     }
 
-    // 获取用户状态
-    static getStatus(req: checkReq): checkRes {
-        for (let u of UserInfo.userList) {
-            if (u.userID == req.userID) {
-                return {status: u.status}
-            }
-        }
-        return {status: "idle"}
-    }
 
     // 获取用户引用
     static getUser(userID: string): UserInfo | null {
