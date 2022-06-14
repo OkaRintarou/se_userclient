@@ -745,6 +745,9 @@ function checkError(piles: ChargingPile[]) {
         let list: UserInfo[] = []
         list.push(u)
         list.push(...pile.userList)
+        for (let u of pile.userList) {
+            ChargingPile.removeWait(u, true)
+        }
         addToCharger(list)
         if (list.length != 0)
             ChargingPile.errorList.push(...list)
@@ -799,8 +802,17 @@ function printWaitingAreaInfo() {
     console.log("-".repeat(30))
 }
 
+function printPriorityWaitingArea() {
+    console.log("优先等候区[故障转移用户，可视为等候区用户填到验收表]信息: (车号,充电类型,充电量)")
+    for (let u of ChargingPile.errorList) {
+        console.log(`(${u.userID},${u.mode},${u.capacity})`)
+    }
+    console.log("-".repeat(30))
+}
+
 function printInfo() {
     printChargerInfo()
+    printPriorityWaitingArea()
     printWaitingAreaInfo()
 }
 
