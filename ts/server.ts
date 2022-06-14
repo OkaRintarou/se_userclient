@@ -402,7 +402,7 @@ class UserInfo {
                 WaitingArea.remove(user)
                 break
             case "chargerWait":
-                ChargingPile.removeWait(user)
+                ChargingPile.removeWait(user, true)
                 break
             case "charging":
                 ChargingPile.removeCharging(user, true)
@@ -464,11 +464,14 @@ class ChargingPile {
 
 
     // 移除充电桩队列的等候者
-    static removeWait(user: UserInfo) {
+    static removeWait(user: UserInfo, isError: boolean) {
         for (let i = 0; i < user.pile!!.userList.length; i++) {
             if (user.pile?.userList[i].userID == user.userID) {
                 user.pile.userList.splice(i, 1)
-                user.endTime = Time.getTimeN()
+                if (isError)
+                    user.endTime = Time.getTime()
+                else
+                    user.endTime = Time.getTimeN()
                 user.status = "idle"
             }
         }
@@ -476,7 +479,7 @@ class ChargingPile {
 
     // 移除正在充电并结账
     static removeCharging(user: UserInfo, isError: boolean) {
-        this.removeWait(user)
+        this.removeWait(user, isError)
         user.pay(isError)
     }
 
@@ -811,7 +814,7 @@ function printWaitingAreaInfo() {
     console.log("-".repeat(30))
 }
 
-function printInfo(){
+function printInfo() {
     printChargerInfo()
     printWaitingAreaInfo()
 }
