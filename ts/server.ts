@@ -330,10 +330,10 @@ class UserInfo {
 
 
     // 其实是生成详单
-    pay() {
+    pay(isError:boolean) {
         this.detail = {
             ID: this.userID,
-            time: `${Time.getTimeN()}`,
+            time: Time.getTimeN(),
             chargerID: this.pile?.id ?? "null",
             capacity: this.capacity,
             chargeTime: this.time,
@@ -342,6 +342,9 @@ class UserInfo {
             chargeBill: this.cBill,
             serviceBill: this.sBill,
             totalBill: this.totalBill
+        }
+        if(isError){
+            this.detail.time=Time.getTime()
         }
     }
 
@@ -402,7 +405,7 @@ class UserInfo {
                 ChargingPile.removeWait(user)
                 break
             case "charging":
-                ChargingPile.removeCharging(user)
+                ChargingPile.removeCharging(user,true)
                 break
         }
         return true
@@ -470,9 +473,9 @@ class ChargingPile {
     }
 
     // 移除正在充电并结账
-    static removeCharging(user: UserInfo) {
+    static removeCharging(user: UserInfo,isError:boolean) {
         this.removeWait(user)
-        user.pay()
+        user.pay(isError)
     }
 
     static getChargerPile(chargerID: string): ChargingPile {
@@ -683,7 +686,7 @@ function chargersRun() {
             if (u.alreadyChargeCapacity >= u.capacity) {
                 u.alreadyChargeCapacity = u.capacity
                 u.status = "idle"
-                ChargingPile.removeCharging(u)
+                ChargingPile.removeCharging(u,false)
             }
         }
     }
@@ -703,7 +706,7 @@ function chargersRun() {
             if (u.alreadyChargeCapacity >= u.capacity) {
                 u.alreadyChargeCapacity = u.capacity
                 u.status = "idle"
-                ChargingPile.removeCharging(u)
+                ChargingPile.removeCharging(u,false)
             }
         }
     }
@@ -747,7 +750,7 @@ function checkError(piles: ChargingPile[]) {
             continue
         }
         let u = pile.userList[0]
-        ChargingPile.removeCharging(u)
+        ChargingPile.removeCharging(u,true)
         let list: UserInfo[] = []
         list.push(u)
         list.push(...pile.userList)
