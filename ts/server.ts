@@ -340,6 +340,7 @@ class UserInfo {
         if (isError) {
             this.detail.time = Time.getTime()
         }
+        UserInfo.detailList.push(this.detail)
     }
 
     // 注册新用户
@@ -837,5 +838,10 @@ let task = () => {
 const rl = ReadLine.createInterface(process.stdin, process.stdout)
 rl.on("line", task)
 rl.on("close", () => {
+    console.log("全部用户详单如下:")
+    for (let d of UserInfo.detailList) {
+        console.log(d)
+    }
+    console.log("-".repeat(30))
     console.log("再次输入Ctrl+C以退出。")
 })
