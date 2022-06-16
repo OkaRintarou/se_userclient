@@ -100,11 +100,15 @@ app.post('/', (req, res) => {
                     sendBack.type = "OK"
                     sendBack.waitNum = WaitingArea.getWaitNum(u)
                     u.alreadyChargeCapacity = 0
+                    u.hisCapacity = 0
                     u.beginTime = "";
                     u.endTime = "";
                     u.cBill = 0;
                     u.sBill = 0;
+                    u.lsBill=0
+                    u.lcBill=0
                     u.time = 0
+                    u.hisTime = 0
                     u.waitTime = 0
                 } else {
                     sendBack.type = "ERR"
@@ -123,11 +127,15 @@ app.post('/', (req, res) => {
                         sendBack.type = "OK"
                         sendBack.waitNum = WaitingArea.getWaitNum(u)
                         u.alreadyChargeCapacity = 0
+                        u.hisCapacity = 0
                         u.beginTime = "";
                         u.endTime = "";
                         u.cBill = 0;
+                        u.lcBill=0
                         u.sBill = 0;
+                        u.lsBill=0
                         u.time = 0
+                        u.hisTime = 0
                         u.waitTime = 0
                     } else {
                         sendBack.type = "ERR"
@@ -277,17 +285,27 @@ class UserInfo {
     mode: "F" | "T" = "T"
     // 已经充电量
     alreadyChargeCapacity = 0
+    // 历史充电量
+    hisCapacity = 0;
     beginTime = "";
     endTime = "";
     cBill = 0;
+    lcBill = 0;
     sBill = 0;
+    lsBill = 0;
     //充电时长
     time = 0
+    // 历史时长
+    hisTime = 0;
     //排队时长
     waitTime = 0
 
     get totalBill() {
         return this.cBill + this.sBill;
+    }
+
+    get totalBillN() {
+        return this.totalBill - this.lcBill - this.lsBill
     }
 
     // 分配到的充电桩
@@ -329,17 +347,21 @@ class UserInfo {
             ID: this.userID,
             time: Time.getTimeN(),
             chargerID: this.pile?.id ?? "null",
-            capacity: this.alreadyChargeCapacity,
-            chargeTime: this.time,
+            capacity: this.alreadyChargeCapacity - this.hisCapacity,
+            chargeTime: this.time - this.hisTime,
             beginTime: this.beginTime,
             endTime: this.endTime,
-            chargeBill: this.cBill,
-            serviceBill: this.sBill,
-            totalBill: this.totalBill
+            chargeBill: this.cBill-this.lcBill,
+            serviceBill: this.sBill-this.lsBill,
+            totalBill: this.totalBillN
         }
         if (isError) {
             this.detail.time = Time.getTime()
         }
+        this.hisCapacity = this.alreadyChargeCapacity;
+        this.hisTime = this.time
+        this.lcBill=this.cBill
+        this.lsBill=this.sBill
         UserInfo.detailList.push(this.detail)
     }
 
