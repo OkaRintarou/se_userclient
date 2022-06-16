@@ -735,23 +735,25 @@ class Time {
 
 function checkError(piles: ChargingPile[]) {
     for (let pile of piles) {
-        if (pile.available || pile.userList.length == 0) continue
+        if (pile.available) continue
         if (pile.errorTimeLast == 0) {
             pile.available = true
             continue
         }
-        let u = pile.userList[0]
-        ChargingPile.removeCharging(u, true)
-        let list: UserInfo[] = []
-        list.push(u)
-        list.push(...pile.userList)
-        while (pile.userList.length != 0) {
-            let user = pile.userList[0]
-            ChargingPile.removeWait(user, true)
+        if (pile.userList.length != 0) {
+            let u = pile.userList[0]
+            ChargingPile.removeCharging(u, true)
+            let list: UserInfo[] = []
+            list.push(u)
+            list.push(...pile.userList)
+            while (pile.userList.length != 0) {
+                let user = pile.userList[0]
+                ChargingPile.removeWait(user, true)
+            }
+            addToCharger(list)
+            if (list.length != 0)
+                ChargingPile.errorList.push(...list)
         }
-        addToCharger(list)
-        if (list.length != 0)
-            ChargingPile.errorList.push(...list)
         pile.errorTimeLast -= 5
         if (pile.errorTimeLast <= 0) pile.errorTimeLast = 0
     }
