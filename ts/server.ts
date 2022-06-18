@@ -105,8 +105,8 @@ app.post('/', (req, res) => {
                     u.endTime = "";
                     u.cBill = 0;
                     u.sBill = 0;
-                    u.lsBill=0
-                    u.lcBill=0
+                    u.lsBill = 0
+                    u.lcBill = 0
                     u.time = 0
                     u.hisTime = 0
                     u.waitTime = 0
@@ -131,9 +131,9 @@ app.post('/', (req, res) => {
                         u.beginTime = "";
                         u.endTime = "";
                         u.cBill = 0;
-                        u.lcBill=0
+                        u.lcBill = 0
                         u.sBill = 0;
-                        u.lsBill=0
+                        u.lsBill = 0
                         u.time = 0
                         u.hisTime = 0
                         u.waitTime = 0
@@ -351,8 +351,8 @@ class UserInfo {
             chargeTime: this.time - this.hisTime,
             beginTime: this.beginTime,
             endTime: this.endTime,
-            chargeBill: this.cBill-this.lcBill,
-            serviceBill: this.sBill-this.lsBill,
+            chargeBill: this.cBill - this.lcBill,
+            serviceBill: this.sBill - this.lsBill,
             totalBill: this.totalBillN
         }
         if (isError) {
@@ -360,8 +360,8 @@ class UserInfo {
         }
         this.hisCapacity = this.alreadyChargeCapacity;
         this.hisTime = this.time
-        this.lcBill=this.cBill
-        this.lsBill=this.sBill
+        this.lcBill = this.cBill
+        this.lsBill = this.sBill
         UserInfo.detailList.push(this.detail)
     }
 
@@ -738,6 +738,9 @@ class Time {
             this.hour += 1
             this.min -= 60
         }
+        if (this.hour >= 24) {
+            this.hour -= 24
+        }
     }
 
     static getTime(): string {
@@ -750,6 +753,9 @@ class Time {
         if (lm >= 60) {
             lh++
             lm -= 60
+        }
+        if (lh >= 24) {
+            lh -= 24
         }
         return `${lh}:${lm}`
     }
