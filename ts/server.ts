@@ -3,8 +3,8 @@ import bodyParser from "body-parser";
 import * as ReadLine from "readline";
 
 // 设置参数
-const FastChargingPileNum = 3
-const TrickleChargingPileNum = 2
+const FastChargingPileNum = 2
+const TrickleChargingPileNum = 3
 const WaitingAreaSize = 10
 const ChargingQueueLen = 3
 
